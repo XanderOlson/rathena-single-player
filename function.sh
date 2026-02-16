@@ -21,7 +21,8 @@ check_inst_right(){
 }
 
 inst_launch_workaround(){
-  if [ -d "${PKG_PATH}" ]; then
+  # Prevent silent directory switching. Opt-in only if explicitly requested.
+  if [ "${ATHENA_USE_OPT_PATH}" = "1" ] && [ -d "${PKG_PATH}" ]; then
     if [ "$(pwd)" != "${PKG_PATH}" ]; then cd "${PKG_PATH}"; fi
   fi
 }
