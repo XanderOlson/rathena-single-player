@@ -10848,7 +10848,7 @@ Body:
       Baby_Royal_Guard2: true
       Baby_Ranger2: true
       Baby_Mechanic2: true
-    MaxJobLevel: 50
+    MaxJobLevel: 70
     JobExp:
       - Level: 1
         Exp: 12800
@@ -10949,6 +10949,46 @@ Body:
       - Level: 49
         Exp: 100000
       - Level: 50
+        Exp: 100000
+      - Level: 51
+        Exp: 100000
+      - Level: 52
+        Exp: 100000
+      - Level: 53
+        Exp: 100000
+      - Level: 54
+        Exp: 100000
+      - Level: 55
+        Exp: 100000
+      - Level: 56
+        Exp: 100000
+      - Level: 57
+        Exp: 100000
+      - Level: 58
+        Exp: 100000
+      - Level: 59
+        Exp: 100000
+      - Level: 60
+        Exp: 100000
+      - Level: 61
+        Exp: 100000
+      - Level: 62
+        Exp: 100000
+      - Level: 63
+        Exp: 100000
+      - Level: 64
+        Exp: 100000
+      - Level: 65
+        Exp: 100000
+      - Level: 66
+        Exp: 100000
+      - Level: 67
+        Exp: 100000
+      - Level: 68
+        Exp: 100000
+      - Level: 69
+        Exp: 100000
+      - Level: 70
         Exp: 100000
   - Jobs:
       Dragon_Knight: true
