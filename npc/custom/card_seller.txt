@@ -4,11 +4,12 @@
 //= Sells all cards dropped by mobs, grouped alphabetically.
 //= MVP cards are excluded from the list.
 //=
-//= NOTE: Requires SQL item and mob databases.
+//= NOTE: Works in YAML mode (use_sql_db: no) and SQL mode.
 //===== Changelogs: ==========================================
 //= 1.0 First version [AnnieRuru]
 //= 1.1 Minor edits [Euphy]
 //= 1.2 Update for monster mode and enchants [Lemongrass]
+//= 1.3 YAML mode support using getmobdrops/getmonsterinfo [Codex]
 //============================================================
 
 prontera,155,177,5	script	Card Seller	100,{
@@ -33,40 +34,62 @@ prontera,155,177,5	script	Card Seller	100,{
 -	script	card_seller_creation	-1,{
 	end;
 OnInit:
-	if (checkre(0)) {
-		.@mob_db$  = "mob_db_re";
-		.@item_db$ = "item_db_re";
-	} else {
-		.@mob_db$  = "mob_db";
-		.@item_db$ = "item_db";
-	}
-	freeloop 1;
-	
-	.@string$ = "( `name_aegis` IN ( SELECT DISTINCT `drop1_item` FROM `" + .@mob_db$ + "` WHERE COALESCE(`mode_mvp`,0) = 0 ) " +
-		"OR `name_aegis` IN ( SELECT DISTINCT `drop2_item` FROM `" + .@mob_db$ + "` WHERE COALESCE(`mode_mvp`,0) = 0 ) " +
-		"OR `name_aegis` IN ( SELECT DISTINCT `drop3_item` FROM `" + .@mob_db$ + "` WHERE COALESCE(`mode_mvp`,0) = 0 ) " +
-		"OR `name_aegis` IN ( SELECT DISTINCT `drop4_item` FROM `" + .@mob_db$ + "` WHERE COALESCE(`mode_mvp`,0) = 0 ) " +
-		"OR `name_aegis` IN ( SELECT DISTINCT `drop5_item` FROM `" + .@mob_db$ + "` WHERE COALESCE(`mode_mvp`,0) = 0 ) " +
-		"OR `name_aegis` IN ( SELECT DISTINCT `drop6_item` FROM `" + .@mob_db$ + "` WHERE COALESCE(`mode_mvp`,0) = 0 ) " +
-		"OR `name_aegis` IN ( SELECT DISTINCT `drop7_item` FROM `" + .@mob_db$ + "` WHERE COALESCE(`mode_mvp`,0) = 0 ) " +
-		"OR `name_aegis` IN ( SELECT DISTINCT `drop8_item` FROM `" + .@mob_db$ + "` WHERE COALESCE(`mode_mvp`,0) = 0 ) " +
-		"OR `name_aegis` IN ( SELECT DISTINCT `drop9_item` FROM `" + .@mob_db$ + "` WHERE COALESCE(`mode_mvp`,0) = 0 ) " +
-		"OR `name_aegis` IN ( SELECT DISTINCT `drop10_item` FROM `" + .@mob_db$ + "` WHERE COALESCE(`mode_mvp`,0) = 0 ) )";
+	deletearray .alphabet$[0], getarraysize(.alphabet$);
+	.alphabet_menu$ = "";
+	.size_alphabet = 0;
 
-	.@total = query_sql( "SELECT DISTINCT LEFT( `name_english`, 1 ) AS alphabets FROM `"+ .@item_db$ +"` WHERE `type` = 'Card' AND " + .@string$ + " ORDER BY alphabets;", .@alphabet$ );
-	for ( .@i = 0; .@i < .@total; .@i++ ) {
-		.@nb = query_sql( "SELECT `"+ .@item_db$ +"`.`id` FROM `"+ .@item_db$ +"` WHERE `type` = 'Card' AND LEFT( `name_english`, 1 ) = '"+ .@alphabet$[.@i] +"' AND " + .@string$ + " ORDER BY `name_english` LIMIT 128;", .@id );
-		if (.@nb > 0) {
-			.alphabet$[.@size_alphabet++] = .@alphabet$[.@i];
-			.alphabet_menu$ = .alphabet_menu$ + .@alphabet$[.@i] +" Cards:";
-			npcshopdelitem "card_mob#"+ .@alphabet$[.@i], 501;
-			for ( .@j = 0; .@j < .@nb; .@j++ ) {
-				if (getiteminfo(.@id[.@j], ITEMINFO_SUBTYPE) == CARD_ENCHANT)// Skip enchants in case someone added them as card drop
-					continue;
-				npcshopadditem "card_mob#"+ .@alphabet$[.@i], .@id[.@j], 1000000;
-			}
+	setarray .@all_alphabet$[0], "A","B","C","D","E","F","G","H","I","J","K","L","M",
+		"N","O","P","Q","R","S","T","U","V","W","X","Y","Z";
+
+	freeloop 1;
+
+	for ( .@i = 0; .@i < getarraysize(.@all_alphabet$); .@i++ )
+		npcshopdelitem "card_mob#"+ .@all_alphabet$[.@i], 501;
+
+	// Scan loaded mob data and gather unique non-MVP dropped normal cards.
+	// Increase this if you use custom mob IDs above this range.
+	.@max_mob_id = 100000;
+	for ( .@mob_id = 1001; .@mob_id <= .@max_mob_id; .@mob_id++ ) {
+		if (getmonsterinfo(.@mob_id, MOB_ID) != .@mob_id) {
+			.@invalid_streak++;
+			if (.@mob_id > 10000 && .@invalid_streak > 5000)
+				break;
+			continue;
+		}
+		.@invalid_streak = 0;
+		if (getmonsterinfo(.@mob_id, MOB_MODE) & MD_MVP)
+			continue;
+		if (!getmobdrops(.@mob_id))
+			continue;
+		for ( .@j = 0; .@j < $@MobDrop_count; .@j++ ) {
+			.@id = $@MobDrop_item[.@j];
+			if (.@id <= 0)
+				continue;
+			if (getiteminfo(.@id, ITEMINFO_TYPE) != IT_CARD)
+				continue;
+			if (getiteminfo(.@id, ITEMINFO_SUBTYPE) == CARD_ENCHANT)
+				continue;
+			if (inarray(.@added_item[0], .@id) != -1)
+				continue;
+
+			.@added_item[.@added_count++] = .@id;
+			.@alphabet$ = strtoupper(charat(getitemname(.@id), 0));
+			.@k = inarray(.@all_alphabet$[0], .@alphabet$);
+			if (.@k == -1 || .@letter_count[.@k] >= 128)
+				continue;
+
+			npcshopadditem "card_mob#"+ .@alphabet$, .@id, 1000000;
+			.@letter_count[.@k]++;
 		}
 	}
+
+	for ( .@i = 0; .@i < getarraysize(.@all_alphabet$); .@i++ ) {
+		if (.@letter_count[.@i] <= 0)
+			continue;
+		.alphabet$[.size_alphabet++] = .@all_alphabet$[.@i];
+		.alphabet_menu$ = .alphabet_menu$ + .@all_alphabet$[.@i] +" Cards:";
+	}
+
 	freeloop 0;
 	end;
 }
